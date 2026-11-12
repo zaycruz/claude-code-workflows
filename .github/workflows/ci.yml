@@ -1,0 +1,55 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: checks (ci.sh)
+        run: bash ci.sh
+
+  verify:
+    # Formal verification for red-blue-loop (docs/red-blue-loop.md): TLC on verify/RedBlueLoop.tla
+    # (the configs must pass, each mutant must break its property) and the bounded check over the
+    # real workflow code. The reports are the PR's FV evidence.
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '"ubuntu-24.04"') }}
+    timeout-minutes: 15
+    env:
+      # Pinned by version and sha256.
+      TLA2TOOLS_VERSION: '1.7.4'
+      TLA2TOOLS_SHA256: '936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Fetch the model checker
+        run: |
+          jar="$RUNNER_TEMP/tla2tools-$TLA2TOOLS_VERSION.jar"
+          curl -fsSL --retry 3 -o "$jar" \
+            "https://github.com/tlaplus/tlaplus/releases/download/v$TLA2TOOLS_VERSION/tla2tools.jar"
+          echo "$TLA2TOOLS_SHA256  $jar" | sha256sum --check
+          echo "TLA2TOOLS_JAR=$jar" >> "$GITHUB_ENV"
+      - run: node verify/run-tlc.mjs
+      - run: node harness/red-blue-loop.scenarios.mjs red-blue-loop.js --report reports/verify/red-blue-loop-bounded.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verify-reports
+          path: |
+            reports/verify/red-blue-loop.json
+            reports/verify/red-blue-loop-bounded.json
+            reports/verify/*.tlc.log
+          if-no-files-found: error

@@ -1,0 +1,6 @@
+wf-smoke-report.json
+node_modules/
+.DS_Store
+plugins/*/.claude-plugin/types/
+reports/
+wf-smoke-report.json
