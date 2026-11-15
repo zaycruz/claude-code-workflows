@@ -13,6 +13,9 @@ trap 'rm -rf "$T"' EXIT
 fails=0
 check() { if eval "$2"; then echo "PASS $1"; else echo "FAIL $1"; fails=$((fails + 1)); fi; }
 g() { git -c user.email=e2e@local -c user.name=e2e "$@"; }
+# The publisher commits with plain git: give every git here an identity, or a host that cannot
+# guess one (GitHub's Ubuntu runners) fails its commits.
+export GIT_AUTHOR_NAME=e2e GIT_AUTHOR_EMAIL=e2e@local GIT_COMMITTER_NAME=e2e GIT_COMMITTER_EMAIL=e2e@local
 
 mkdir -p "$T/bin"
 cat > "$T/bin/gh" <<'SH'
