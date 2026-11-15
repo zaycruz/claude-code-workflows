@@ -177,3 +177,7 @@ bash ci.sh    # the last line is: ci: ALL PASS
 `harness/*.scenarios.mjs` files script failure cases, and each comes with
 negative controls: mutations of the code that must break a scenario. The guard
 and the installer each have their own check.
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).
